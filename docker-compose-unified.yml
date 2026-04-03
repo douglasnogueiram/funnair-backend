@@ -1,0 +1,297 @@
+services:
+
+    funnair-backend:
+        build:
+            context: .
+            dockerfile: Dockerfile.multistage
+        container_name: funnair-backend
+        restart: always
+        depends_on:
+            postgres:
+                condition: service_healthy
+            chroma:
+                condition: service_started
+            loki:
+                condition: service_started
+            tempo:
+                condition: service_started
+            agent-buyprocess:
+                condition: service_healthy
+        environment:
+            # Database
+            - DB_HOST=postgres
+            - DB_PORT=5432
+            - DB_NAME=${POSTGRES_DB:-vector_store}
+            - DB_USER=${POSTGRES_USER:-postgres}
+            - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+            # OpenAI
+            - OPENAI_API_KEY=${OPENAI_API_KEY}
+            # Chroma Vector Store
+            - CHROMA_HOST=http://chroma
+            - CHROMA_PORT=8000
+            # MCP Client
+            - MCP_SERVER_URL=http://agent-buyprocess:8085
+            # Observability
+            - LOKI_URL=http://loki:3100/loki/api/v1/push
+            - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://tempo:4317
+            # Vaadin Production Mode
+            - vaadin.productionMode=true
+            - SPRING_PROFILES_ACTIVE=default
+        ports:
+            - "8080:8080"
+        networks:
+            - net
+        healthcheck:
+            test: "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"
+            interval: 30s
+            timeout: 10s
+            retries: 5
+            start_period: 60s
+
+    agent-buyprocess:
+        build:
+            context: ../agent-buyprocess
+        container_name: agent-buyprocess
+        restart: always
+        depends_on:
+            buyprocess-postgres:
+                condition: service_healthy
+            loki:
+                condition: service_started
+            tempo:
+                condition: service_started
+        environment:
+            - OPENAI_API_KEY=${OPENAI_API_KEY}
+            - SPRING_AI_OPENAI_API_KEY=${OPENAI_API_KEY}
+            - SPRING_AI_OPENAI_AUDIO_SPEECH_API_KEY=${OPENAI_API_KEY}
+            - SPRING_DATASOURCE_URL=jdbc:postgresql://buyprocess-postgres:5432/agent_buyprocess
+            - SPRING_DATASOURCE_USERNAME=postgres
+            - SPRING_DATASOURCE_PASSWORD=postgres
+            - LOKI_URL=http://loki:3100/loki/api/v1/push
+            - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://tempo:4317
+            - SERVER_PORT=8085
+        ports:
+            - "8085:8085"
+        networks:
+            - net
+        healthcheck:
+            test: "wget --no-verbose --tries=1 --spider http://localhost:8085/actuator/health || exit 1"
+            interval: 15s
+            timeout: 10s
+            retries: 5
+            start_period: 45s
+
+    funnair-rag-loader:
+        build:
+            context: ../rag
+        container_name: funnair-rag-loader
+        restart: always
+        depends_on:
+            postgres:
+                condition: service_healthy
+            chroma:
+                condition: service_started
+        environment:
+            - OPENAI_API_KEY=${OPENAI_API_KEY}
+            - DB_HOST=postgres
+            - DB_PORT=5432
+            - DB_NAME=${POSTGRES_DB:-vector_store}
+            - DB_USER=${POSTGRES_USER:-postgres}
+            - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+            - CHROMA_HOST=http://chroma
+            - CHROMA_PORT=8000
+            - SERVER_PORT=8090
+        ports:
+            - "8090:8090"
+        networks:
+            - net
+        healthcheck:
+            test: "curl -f http://localhost:8090/api/documents || exit 1"
+            interval: 20s
+            timeout: 10s
+            retries: 5
+            start_period: 40s
+
+    funnair-frontend:
+        build:
+            context: ../funnair-frontend
+        container_name: funnair-frontend
+        restart: always
+        depends_on:
+            funnair-backend:
+                condition: service_healthy
+            agent-buyprocess:
+                condition: service_healthy
+        ports:
+            - "80:80"
+        networks:
+            - net
+
+    pgadmin:
+        image: dpage/pgadmin4:latest
+        container_name: pgadmin
+        restart: always
+        environment:
+            - PGADMIN_DEFAULT_EMAIL=admin@funnair.com
+            - PGADMIN_DEFAULT_PASSWORD=admin
+            - PGADMIN_CONFIG_SERVER_MODE=False
+            - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+        volumes:
+            - pgadmin-data:/var/lib/pgadmin
+            - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+        ports:
+            - "5050:80"
+        networks:
+            - net
+        depends_on:
+            postgres:
+                condition: service_healthy
+            buyprocess-postgres:
+                condition: service_healthy
+
+    chroma:
+        image: ghcr.io/chroma-core/chroma:1.0.0
+        restart: always
+        environment:
+            - IS_PERSISTENT=TRUE
+        volumes:
+            - chroma-data:/chroma/chroma/
+        ports:
+            - 8000:8000
+        networks:
+            - net
+
+    postgres:
+        image: ankane/pgvector:v0.5.0
+        restart: always
+        environment:
+            - POSTGRES_USER=${POSTGRES_USER:-postgres}
+            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+            - POSTGRES_DB=${POSTGRES_DB:-vector_store}
+            - PGPASSWORD=${POSTGRES_PASSWORD:-postgres}
+        logging:
+            options:
+                max-size: 10m
+                max-file: "3"
+        ports:
+            - '5432:5432'
+        volumes:
+            - postgres-data:/var/lib/postgresql/data
+            - ./src/main/resources/db/init-database.sql:/docker-entrypoint-initdb.d/init-database.sql
+        healthcheck:
+            test: "pg_isready -U postgres -d vector_store"
+            interval: 2s
+            timeout: 20s
+            retries: 10
+        networks:
+            - net
+
+    buyprocess-postgres:
+        image: postgres:15
+        container_name: agent_buyprocess_db
+        restart: always
+        environment:
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
+            - POSTGRES_DB=agent_buyprocess
+        ports:
+            - '5433:5432'
+        volumes:
+            - buyprocess-postgres-data:/var/lib/postgresql/data
+            - ../agent-buyprocess/src/main/resources/db/init-buyprocess.sql:/docker-entrypoint-initdb.d/init-buyprocess.sql
+        healthcheck:
+            test: "pg_isready -U postgres -d agent_buyprocess"
+            interval: 2s
+            timeout: 20s
+            retries: 10
+        networks:
+            - net
+
+    prometheus:
+        container_name: prometheus
+        image: prom/prometheus:v2.54.0
+        extra_hosts: [ 'host.docker.internal:host-gateway' ]
+        command:
+            - --enable-feature=exemplar-storage
+            - --web.enable-remote-write-receiver
+            - --config.file=/etc/prometheus/prometheus.yml
+        volumes:
+            - prometheus:/prometheus
+            - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+        ports:
+            - "9091:9090"
+        networks:
+            - net
+
+    grafana:
+        container_name: grafana
+        image: grafana/grafana:11.1.4
+        extra_hosts: [ 'host.docker.internal:host-gateway' ]
+        environment:
+            - GF_AUTH_ANONYMOUS_ENABLED=true
+            - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+            - GF_AUTH_DISABLE_LOGIN_FORM=true
+        volumes:
+            - ./docker/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+            - ./docker/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+            - ./docker/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+            - ./docker/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
+        ports:
+            - "3000:3000"
+        networks:
+            - net
+
+    tempo-init:
+        image: &tempoImage grafana/tempo:2.5.0
+        user: root
+        entrypoint:
+            - "chown"
+            - "10001:10001"
+            - "/var/tempo"
+        volumes:
+            - tempo:/var/tempo
+
+    tempo:
+        container_name: tempo
+        image: *tempoImage
+        extra_hosts: [ 'host.docker.internal:host-gateway' ]
+        command: [ '-config.file=/etc/tempo.yml' ]
+        depends_on: [ 'tempo-init' ]
+        volumes:
+            - tempo:/var/tempo
+            - ./docker/grafana/tempo.yml:/etc/tempo.yml:ro
+        ports:
+            - "3200:3200"
+            - "4317:4317"
+            - "4318:4318"
+            - "9411:9411"
+        networks:
+            - net
+
+    loki:
+        container_name: loki
+        image: grafana/loki:3.0.1
+        extra_hosts: [ 'host.docker.internal:host-gateway' ]
+        command: [ '-config.file=/etc/loki/local-config.yaml' ]
+        ports:
+            - "3100:3100"
+        networks:
+            - net
+
+volumes:
+    prometheus:
+        driver: local
+    tempo:
+        driver: local
+    chroma-data:
+        driver: local
+    postgres-data:
+        driver: local
+    buyprocess-postgres-data:
+        driver: local
+    pgadmin-data:
+        driver: local
+
+networks:
+    net:
+        driver: bridge

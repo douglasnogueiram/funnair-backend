@@ -1,0 +1,659 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: 10s
+      folder: Teahouse
+      interval: 10s
+      rules:
+        - uid: dce655bc-f9d5-41fa-bec3-53ce55a1e049
+          title: High Error Rate
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 60
+                to: 0
+              datasourceUid: prometheus
+              model:
+                datasource:
+                    type: prometheus
+                    uid: prometheus
+                editorMode: code
+                exemplar: false
+                expr: rate(http_server_requests_seconds_count{outcome!="SUCCESS", application="tea-service"}[$__rate_interval])
+                hide: false
+                instant: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                range: true
+                refId: A
+            - refId: B
+              relativeTimeRange:
+                from: 60
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - B
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                settings:
+                    mode: dropNN
+                type: reduce
+            - refId: C
+              relativeTimeRange:
+                from: 60
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.1
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: 280lKAr7k
+          panelId: 8
+          noDataState: OK
+          execErrState: Error
+          for: 10s
+          annotations:
+            __dashboardUid__: 280lKAr7k
+            __panelId__: "8"
+            summary: Error rate is high
+          isPaused: false
+        - uid: d4ac5559-95ec-4295-819f-a9777ae51518
+          title: High Latency
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 60
+                to: 0
+              datasourceUid: prometheus
+              model:
+                datasource:
+                    type: prometheus
+                    uid: prometheus
+                editorMode: code
+                expr: histogram_quantile(1.00, sum(rate(http_server_requests_seconds_bucket{application=~"tea-service"}[$__rate_interval])) by (le))
+                hide: false
+                instant: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                range: true
+                refId: A
+            - refId: B
+              relativeTimeRange:
+                from: 60
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - B
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                settings:
+                    mode: dropNN
+                type: reduce
+            - refId: C
+              relativeTimeRange:
+                from: 60
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.1
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: 280lKAr7k
+          panelId: 6
+          noDataState: OK
+          execErrState: Error
+          for: 10s
+          annotations:
+            __dashboardUid__: 280lKAr7k
+            __panelId__: "6"
+            summary: Latency is high
+          isPaused: false
+    - orgId: 1
+      name: flight-booking-business
+      folder: FlightBooking
+      interval: 1m
+      rules:
+        - uid: fb-payment-rejection-rate
+          title: High Payment Rejection Rate
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 300
+                to: 0
+              datasourceUid: prometheus
+              model:
+                datasource:
+                    type: prometheus
+                    uid: prometheus
+                editorMode: code
+                expr: |
+                  sum(rate(payment_processed_total{result!="approved"}[5m]))
+                  /
+                  sum(rate(payment_processed_total[5m]))
+                hide: false
+                instant: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                range: true
+                refId: A
+            - refId: B
+              relativeTimeRange:
+                from: 300
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - B
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                settings:
+                    mode: dropNN
+                type: reduce
+            - refId: C
+              relativeTimeRange:
+                from: 300
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.3
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: OK
+          execErrState: Error
+          for: 5m
+          annotations:
+            summary: "Payment rejection rate exceeded 30% for 5 minutes"
+            description: "More than 30% of payments are being rejected."
+          isPaused: false
+        - uid: fb-hikari-pending
+          title: HikariCP Connections Pending
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 60
+                to: 0
+              datasourceUid: prometheus
+              model:
+                datasource:
+                    type: prometheus
+                    uid: prometheus
+                editorMode: code
+                expr: hikaricp_pending_threads
+                hide: false
+                instant: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                range: true
+                refId: A
+            - refId: B
+              relativeTimeRange:
+                from: 60
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - B
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                settings:
+                    mode: dropNN
+                type: reduce
+            - refId: C
+              relativeTimeRange:
+                from: 60
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 2
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: OK
+          execErrState: Error
+          for: 1m
+          annotations:
+            summary: "HikariCP has more than 2 pending connection requests"
+            description: "Database connection pool is saturated."
+          isPaused: false
+        - uid: fb-llm-p99-latency
+          title: LLM P99 Latency High
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 120
+                to: 0
+              datasourceUid: prometheus
+              model:
+                datasource:
+                    type: prometheus
+                    uid: prometheus
+                editorMode: code
+                expr: histogram_quantile(0.99, sum(rate(gen_ai_client_operation_duration_seconds_bucket[5m])) by (le))
+                hide: false
+                instant: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                range: true
+                refId: A
+            - refId: B
+              relativeTimeRange:
+                from: 120
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - B
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                settings:
+                    mode: dropNN
+                type: reduce
+            - refId: C
+              relativeTimeRange:
+                from: 120
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 20
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: OK
+          execErrState: Error
+          for: 2m
+          annotations:
+            summary: "LLM P99 latency exceeded 20 seconds"
+            description: "99th percentile LLM response time is above 20s."
+          isPaused: false
+        - uid: fb-5xx-error-rate
+          title: High 5xx Error Rate
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 120
+                to: 0
+              datasourceUid: prometheus
+              model:
+                datasource:
+                    type: prometheus
+                    uid: prometheus
+                editorMode: code
+                expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+                hide: false
+                instant: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                range: true
+                refId: A
+            - refId: B
+              relativeTimeRange:
+                from: 120
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - B
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                settings:
+                    mode: dropNN
+                type: reduce
+            - refId: C
+              relativeTimeRange:
+                from: 120
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.1
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: OK
+          execErrState: Error
+          for: 2m
+          annotations:
+            summary: "5xx error rate exceeded 0.1 req/s"
+            description: "Application is returning server errors at high rate."
+          isPaused: false
+        - uid: fb-mcp-server-down
+          title: MCP Payment Server Down
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 60
+                to: 0
+              datasourceUid: prometheus
+              model:
+                datasource:
+                    type: prometheus
+                    uid: prometheus
+                editorMode: code
+                expr: up{job="mcp-payment-server"}
+                hide: false
+                instant: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                range: true
+                refId: A
+            - refId: B
+              relativeTimeRange:
+                from: 60
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - B
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                settings:
+                    mode: dropNN
+                type: reduce
+            - refId: C
+              relativeTimeRange:
+                from: 60
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 1
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: Alerting
+          execErrState: Alerting
+          for: 0s
+          annotations:
+            summary: "MCP Payment Server is down"
+            description: "Prometheus cannot scrape the MCP payment server."
+          isPaused: false
+contactPoints:
+  - orgId: 1
+    name: alerts-email-and-local-webhook
+    receivers:
+      - uid: 4e3bfe25-00cf-4173-b02b-16f077e539da
+        type: email
+        disableResolveMessage: false
+        settings:
+            addresses: alerts@example.org
+            singleEmail: false
+      - uid: ffc01bb5-d147-4890-a406-b2598f3cd0cc
+        type: webhook
+        disableResolveMessage: false
+        settings:
+            url: 'http://host.docker.internal:3333'
+policies:
+  - orgId: 1
+    receiver: alerts-email-and-local-webhook
+    group_by: ['grafana_folder', 'alertname']
+    group_wait: 0s
+    group_interval: 1s

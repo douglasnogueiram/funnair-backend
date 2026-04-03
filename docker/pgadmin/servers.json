@@ -1,0 +1,24 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Funnair Backend (vector_store)",
+      "Group": "Funnair",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "vector_store",
+      "Username": "postgres",
+      "Password": "postgres",
+      "SSLMode": "prefer"
+    },
+    "2": {
+      "Name": "Agent Buyprocess",
+      "Group": "Funnair",
+      "Host": "buyprocess-postgres",
+      "Port": 5432,
+      "MaintenanceDB": "agent_buyprocess",
+      "Username": "postgres",
+      "Password": "postgres",
+      "SSLMode": "prefer"
+    }
+  }
+}

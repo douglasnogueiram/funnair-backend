@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "spring-boot-app",
+      "runtimeExecutable": "./mvnw",
+      "runtimeArgs": ["spring-boot:run"],
+      "port": 8080
+    },
+    {
+      "name": "docker-infra",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": ["compose", "up"],
+      "port": 5432
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+.git/
+.gitignore
+.env
+.env.example
+*.md
+.mvn/wrapper/maven-wrapper.jar
+node_modules/
+.idea/
+.vscode/
+*.iml
+.DS_Store
+target/
