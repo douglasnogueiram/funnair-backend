@@ -27,3 +27,5 @@ logs/
 # Docker volumes (local data)
 docker/pgdata/
 docker/pgadmin-data/
+node_modules/
+frontend/generated/
